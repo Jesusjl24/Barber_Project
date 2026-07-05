@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* MiBarbero design tokens — deep navy base, gold accent, teal availability. */
+@theme {
+  --color-ink: #0a0f1e; /* app background */
+  --color-ink-soft: #0e1526; /* raised background */
+  --color-card: #141c30; /* card surface */
+  --color-card-2: #1a2440; /* nested surface */
+  --color-line: #24304e; /* borders */
+  --color-gold: #f5b942; /* primary accent */
+  --color-gold-deep: #d99a1b;
+  --color-teal: #2dd4a8; /* availability */
+  --color-coral: #f87171; /* danger / no-show */
+  --color-cream: #f7f3ea; /* headings */
+  --color-muted: #93a0bd; /* secondary text */
+
+  --font-sans: var(--font-body, ui-sans-serif, system-ui, sans-serif);
+
+  --radius-card: 1.25rem;
+}
+
+html {
+  background: var(--color-ink);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink);
+  color: #e8ecf5;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100dvh;
+}
+
+/* Safe-area support for installed PWA / notched phones */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Subtle scrollbar on desktop preview */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3550 transparent;
+}
+
+/* Reusable component classes.
+   Note: Tailwind v4 can't @apply a custom class, so the shared button base
+   is written as plain CSS and each variant only @applies real utilities. */
+@layer components {
+  .card {
+    @apply bg-card border border-line rounded-3xl;
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    border-radius: 1rem;
+    padding: 0.875rem 1.25rem;
+    font-size: 1rem;
+    min-height: 3rem;
+    user-select: none;
+    transition:
+      background-color 150ms,
+      border-color 150ms,
+      color 150ms,
+      transform 100ms;
+  }
+  .btn:active,
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-ghost:active,
+  .btn-danger:active {
+    transform: scale(0.98);
+  }
+  .btn-primary {
+    @apply bg-gold text-ink hover:bg-gold-deep;
+  }
+  .btn-secondary {
+    @apply bg-card-2 text-cream border border-line hover:border-gold/50;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-muted hover:text-cream;
+  }
+  .btn-danger {
+    @apply bg-coral/15 text-coral border border-coral/30 hover:bg-coral/25;
+  }
+  .input {
+    @apply w-full rounded-2xl bg-ink-soft border border-line px-4 py-3.5 text-base text-cream placeholder:text-muted/60 focus:outline-none focus:border-gold/60 focus:ring-2 focus:ring-gold/20 min-h-12;
+  }
+  .label {
+    @apply block text-sm font-medium text-muted mb-1.5;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium cursor-pointer transition-colors;
+  }
+}
