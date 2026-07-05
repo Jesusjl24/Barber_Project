@@ -13,6 +13,7 @@ This is **not** a salon SaaS clone. No forced app download, no forced card payme
 ## Run it
 
 ```bash
+# Requires Node >=20.9.0 (Node 22 recommended; see .nvmrc)
 npm install
 npm run dev        # http://localhost:3000
 ```
