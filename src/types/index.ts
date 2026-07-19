@@ -52,7 +52,6 @@ export interface BarberProfile {
   instagramUrl: string;
   whatsappNumber: string;
   paymentMethods: PaymentMethod[];
-  ratingAverage: number;
   isVerified: boolean;
   currentShopId: string;
   status: AvailabilityStatus;
@@ -66,6 +65,7 @@ export interface Shop {
   neighborhood: string;
   city: string;
   state: string;
+  zip: string;
   lat: number;
   lng: number;
   phone: string;
@@ -113,16 +113,6 @@ export interface Appointment {
   createdAt: string;
 }
 
-export interface Review {
-  id: string;
-  barberId: string;
-  customerName: string;
-  rating: number;
-  text: string;
-  serviceId: string | null;
-  createdAt: string;
-}
-
 export interface AnalyticsEvent {
   id: string;
   eventName: string;
@@ -143,4 +133,25 @@ export interface BarberProfileEdits {
   specialty?: string;
   instagramUrl?: string;
   whatsappNumber?: string;
+}
+
+/** Editable shop fields the owner can change from the owner dashboard. */
+export interface ShopEdits {
+  name?: string;
+  description?: string;
+  phone?: string;
+}
+
+/**
+ * A barber's own rollup of a client, derived from queue/appointment history.
+ * This is the "portable client book" — belongs to the barber, exportable,
+ * and independent of which shop they're currently chairing at.
+ */
+export interface ClientRecord {
+  /** Normalized (digits-only) phone number — the join key across visits. */
+  phone: string;
+  name: string;
+  visitCount: number;
+  lastVisitAt: string;
+  lastServiceName: string;
 }

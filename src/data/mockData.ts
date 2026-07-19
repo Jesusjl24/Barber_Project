@@ -2,7 +2,6 @@ import type {
   Appointment,
   BarberProfile,
   QueueEntry,
-  Review,
   Service,
   Shop,
 } from "@/types";
@@ -12,19 +11,36 @@ import type {
 // When Supabase is connected, this becomes the seed script.
 // ---------------------------------------------------------------------------
 
-export const shop: Shop = {
-  id: "shop-caribe",
-  name: "Caribe Cuts",
-  address: "1580 St. Nicholas Ave",
-  neighborhood: "Washington Heights",
-  city: "New York",
-  state: "NY",
-  lat: 40.8417,
-  lng: -73.9394,
-  phone: "+1 (212) 555-0148",
-  description:
-    "Walk-ins welcome. Book your barber or join the line before you pull up.",
-};
+export const shops: Shop[] = [
+  {
+    id: "shop-caribe",
+    name: "Caribe Cuts",
+    address: "1580 St. Nicholas Ave",
+    neighborhood: "Washington Heights",
+    city: "New York",
+    state: "NY",
+    zip: "10032",
+    lat: 40.8417,
+    lng: -73.9394,
+    phone: "+1 (212) 555-0148",
+    description:
+      "Walk-ins welcome. Book your barber or join the line before you pull up.",
+  },
+  {
+    id: "shop-quisqueya",
+    name: "Quisqueya Barbershop",
+    address: "420 Bergenline Ave",
+    neighborhood: "Union City",
+    city: "Union City",
+    state: "NJ",
+    zip: "07087",
+    lat: 40.7795,
+    lng: -74.0246,
+    phone: "+1 (201) 555-0176",
+    description:
+      "Family-run since 2011. Every barber runs his own book — cash, Zelle, all good.",
+  },
+];
 
 export const barbers: BarberProfile[] = [
   {
@@ -39,7 +55,6 @@ export const barbers: BarberProfile[] = [
     instagramUrl: "https://instagram.com/fadeking.luis",
     whatsappNumber: "+12125550111",
     paymentMethods: ["cash", "zelle", "cashapp"],
-    ratingAverage: 4.9,
     isVerified: true,
     currentShopId: "shop-caribe",
     status: "available",
@@ -57,7 +72,6 @@ export const barbers: BarberProfile[] = [
     instagramUrl: "https://instagram.com/mannyblendz",
     whatsappNumber: "+12125550122",
     paymentMethods: ["cash", "cashapp", "card"],
-    ratingAverage: 4.7,
     isVerified: true,
     currentShopId: "shop-caribe",
     status: "busy",
@@ -75,11 +89,44 @@ export const barbers: BarberProfile[] = [
     instagramUrl: "https://instagram.com/jaythebarber.nyc",
     whatsappNumber: "+12125550133",
     paymentMethods: ["cash", "zelle"],
-    ratingAverage: 4.8,
     isVerified: false,
     currentShopId: "shop-caribe",
     status: "off",
     estimatedWaitMinutes: 0,
+  },
+  {
+    id: "nando",
+    userId: "user-nando",
+    displayName: "Nando Estévez",
+    bio: "18 años cortando en Union City. Fades, diseños, y buena conversación. Se habla español primero, inglés también.",
+    photoUrl: null,
+    initials: "NE",
+    specialty: "Fades & line designs",
+    languages: ["es", "en"],
+    instagramUrl: "https://instagram.com/nandocuts",
+    whatsappNumber: "+12015550144",
+    paymentMethods: ["cash", "zelle"],
+    isVerified: true,
+    currentShopId: "shop-quisqueya",
+    status: "available",
+    estimatedWaitMinutes: 15,
+  },
+  {
+    id: "bebo",
+    userId: "user-bebo",
+    displayName: "Bebo Cuts",
+    bio: "Fast, clean, no wasted time. Tapers and beard lineups are the specialty. Text ahead on busy Saturdays.",
+    photoUrl: null,
+    initials: "BC",
+    specialty: "Tapers & beard lineups",
+    languages: ["en", "es"],
+    instagramUrl: "https://instagram.com/bebocuts",
+    whatsappNumber: "+12015550155",
+    paymentMethods: ["cash", "cashapp", "card"],
+    isVerified: false,
+    currentShopId: "shop-quisqueya",
+    status: "busy",
+    estimatedWaitMinutes: 35,
   },
 ];
 
@@ -187,6 +234,48 @@ export const services: Service[] = [
     depositRequired: false,
     active: true,
   },
+  // Nando
+  {
+    id: "svc-nando-cut",
+    barberId: "nando",
+    name: "Corte Regular",
+    description: "Corte clásico, tijera y máquina.",
+    durationMinutes: 30,
+    priceDisplay: "$30",
+    depositRequired: false,
+    active: true,
+  },
+  {
+    id: "svc-nando-fade",
+    barberId: "nando",
+    name: "Fade con Diseño",
+    description: "Fade con línea o diseño a tu gusto.",
+    durationMinutes: 45,
+    priceDisplay: "$45",
+    depositRequired: false,
+    active: true,
+  },
+  // Bebo
+  {
+    id: "svc-bebo-taper",
+    barberId: "bebo",
+    name: "Taper",
+    description: "Tight taper, clean neckline.",
+    durationMinutes: 30,
+    priceDisplay: "$32",
+    depositRequired: false,
+    active: true,
+  },
+  {
+    id: "svc-bebo-beard",
+    barberId: "bebo",
+    name: "Beard Lineup",
+    description: "Sharp beard edge-up and shape.",
+    durationMinutes: 15,
+    priceDisplay: "$18",
+    depositRequired: false,
+    active: true,
+  },
 ];
 
 function minutesAgo(mins: number): string {
@@ -265,6 +354,19 @@ export const seedQueue: QueueEntry[] = [
     source: "link",
     createdAt: minutesAgo(12),
   },
+  {
+    id: "q-seed-6",
+    barberId: "nando",
+    customerName: "Freddy A.",
+    phone: "(201) 555-0188",
+    serviceId: "svc-nando-fade",
+    status: "waiting",
+    quotedWaitMinutes: 15,
+    position: 1,
+    paymentMethodSelected: "zelle",
+    source: "link",
+    createdAt: minutesAgo(8),
+  },
 ];
 
 export const seedAppointments: Appointment[] = [
@@ -308,54 +410,6 @@ export const seedAppointments: Appointment[] = [
   },
 ];
 
-export const seedReviews: Review[] = [
-  {
-    id: "rev-seed-1",
-    barberId: "luis",
-    customerName: "Edwin R.",
-    rating: 5,
-    text: "Best fade in the Heights, no debate. I pulled up, saw the wait on his link, joined the line from my couch. Game changer.",
-    serviceId: "svc-luis-skinfade",
-    createdAt: minutesAgo(60 * 24 * 2),
-  },
-  {
-    id: "rev-seed-2",
-    barberId: "luis",
-    customerName: "Marisol G.",
-    rating: 5,
-    text: "Llevo a mi hijo hace 3 años. Luis siempre puntual y el corte siempre limpio. Ahora con la fila en línea, ni esperamos.",
-    serviceId: "svc-luis-cut",
-    createdAt: minutesAgo(60 * 24 * 6),
-  },
-  {
-    id: "rev-seed-3",
-    barberId: "luis",
-    customerName: "Tony B.",
-    rating: 4,
-    text: "Great cut and beard work. Shop gets busy Saturdays so check the queue first — that’s the move.",
-    serviceId: "svc-luis-combo",
-    createdAt: minutesAgo(60 * 24 * 12),
-  },
-  {
-    id: "rev-seed-4",
-    barberId: "manny",
-    customerName: "Jorge D.",
-    rating: 5,
-    text: "Manny’s blends are stupid clean. My son actually sits still for him, which is a miracle.",
-    serviceId: "svc-manny-kids",
-    createdAt: minutesAgo(60 * 24 * 4),
-  },
-  {
-    id: "rev-seed-5",
-    barberId: "jay",
-    customerName: "Sam K.",
-    rating: 5,
-    text: "Old school precision. Jay takes his time and it shows. Book ahead — he fills up.",
-    serviceId: "svc-jay-classic",
-    createdAt: minutesAgo(60 * 24 * 9),
-  },
-];
-
 export function getBarber(id: string): BarberProfile | undefined {
   return barbers.find((b) => b.id === id);
 }
@@ -366,4 +420,29 @@ export function getServicesForBarber(barberId: string): Service[] {
 
 export function getService(id: string): Service | undefined {
   return services.find((s) => s.id === id);
+}
+
+export function getShop(id: string): Shop | undefined {
+  return shops.find((s) => s.id === id);
+}
+
+export function getShopForBarber(barberId: string): Shop | undefined {
+  const barber = getBarber(barberId);
+  return barber ? getShop(barber.currentShopId) : undefined;
+}
+
+export function getBarbersForShop(shopId: string): BarberProfile[] {
+  return barbers.filter((b) => b.currentShopId === shopId);
+}
+
+/** Matches a shop by name, neighborhood, city, state, or ZIP (fuzzy, case-insensitive). */
+export function searchShops(query: string): Shop[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return shops;
+  return shops.filter((s) =>
+    [s.name, s.neighborhood, s.city, s.state, s.zip]
+      .join(" ")
+      .toLowerCase()
+      .includes(q)
+  );
 }

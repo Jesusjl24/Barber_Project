@@ -79,15 +79,10 @@ await page.goto(`${BASE}/me`, { waitUntil: "networkidle" });
 check("my visits shows queue spot", await page.getByText("You’re in line").first().isVisible());
 check("my visits shows booking", await page.getByText("Upcoming booking").isVisible());
 
-// 9. Reviews
-await page.goto(`${BASE}/b/luis/reviews`, { waitUntil: "networkidle" });
-await page.locator("#rev-name").fill("Smoke Tester");
-await page.getByRole("radio", { name: "4 / 5" }).click();
-await page.locator("#rev-text").fill("Clean fade, quick line. Five stars minus traffic.");
-await page.getByRole("button", { name: "Submit review" }).click();
-await page.waitForTimeout(400);
-check("review thanks shown", await page.getByText(/Thanks! Your review is live/).isVisible());
-check("review appears in list", await page.getByText("Smoke Tester").first().isVisible());
+// 9. No public ratings/reviews surface (PRD non-goal)
+await page.goto(`${BASE}/b/luis`, { waitUntil: "networkidle" });
+check("no star rating shown on profile", (await page.getByText(/★\s*4\.\d/).count()) === 0);
+check("no reviews route", (await page.goto(`${BASE}/b/luis/reviews`)).status() === 404);
 
 // 10. Dashboard: status, wait, queue management
 await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
@@ -111,10 +106,38 @@ await page.getByRole("button", { name: "Add", exact: true }).click();
 await page.waitForTimeout(300);
 check("walk-in added to queue", await page.getByText("Walkin Willy").isVisible());
 
-// 11. Shop view
+// 11a. Shop search (city/state/ZIP)
 await page.goto(`${BASE}/shop`, { waitUntil: "networkidle" });
+check("search lists both shops", (await page.getByRole("link", { name: "View Shop" }).count()) === 2);
+await page.getByRole("searchbox").fill("07087");
+await page.waitForTimeout(300);
+check("ZIP search narrows to Quisqueya", (await page.getByRole("link", { name: "View Shop" }).count()) === 1 && await page.getByText("Quisqueya Barbershop").isVisible());
+await page.getByRole("searchbox").fill("Nowhere OK");
+await page.waitForTimeout(300);
+check("no-results state shows", await page.getByText(/No shops found/).isVisible());
+
+// 11b. Shop front-door page
+await page.goto(`${BASE}/shop/shop-caribe`, { waitUntil: "networkidle" });
 check("shop shows Caribe Cuts", await page.getByText("Caribe Cuts").first().isVisible());
 check("shop shows 3 barbers", (await page.getByRole("link", { name: "View Barber" }).count()) === 3);
+check("front door footer credit", await page.getByText("Powered by").isVisible());
+
+// 11c. Client book + CSV export (barber dashboard)
+await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+await page.getByText("My Clients").scrollIntoViewIfNeeded();
+const [download] = await Promise.all([
+  page.waitForEvent("download"),
+  page.getByRole("button", { name: "Export CSV" }).click(),
+]);
+check("client CSV downloads", (download.suggestedFilename() ?? "").endsWith(".csv"));
+
+// 11d. Owner dashboard
+await page.goto(`${BASE}/owner`, { waitUntil: "networkidle" });
+check("owner shows aggregate stats", await page.getByText("In line now").isVisible());
+check("owner shows roster", (await page.getByRole("link", { name: "View Barber" }).count()) === 3);
+await page.getByRole("button", { name: "Quisqueya Barbershop" }).click();
+await page.waitForTimeout(300);
+check("owner can switch shops", (await page.getByRole("link", { name: "View Barber" }).count()) === 2);
 
 // 12. Admin metrics
 await page.goto(`${BASE}/admin`, { waitUntil: "networkidle" });

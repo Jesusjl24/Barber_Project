@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useApp, useT } from "@/lib/store";
 import BarberCard from "@/components/BarberCard";
-import { shop } from "@/data/mockData";
+import { getBarbersForShop, shops } from "@/data/mockData";
 
 export default function HomePage() {
   const t = useT();
-  const { hydrated, allBarbers } = useApp();
+  const { hydrated, getBarber } = useApp();
 
   return (
     <div className="space-y-8 pt-4">
@@ -30,20 +30,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured barbers */}
+      {/* Find your barber (search entry point) */}
+      <Link
+        href="/shop"
+        className="card flex items-center gap-3 p-4 text-muted transition-colors hover:border-gold/50"
+      >
+        <span aria-hidden className="text-lg">
+          🔍
+        </span>
+        <span className="text-base">{t("searchPlaceholder")}</span>
+      </Link>
+
+      {/* Featured shop's barbers */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-xl font-bold text-cream">
-            {t("shopBarbersTitle", { shop: shop.name })}
+            {t("shopBarbersTitle", { shop: shops[0].name })}
           </h2>
           <Link href="/shop" className="text-sm font-semibold text-gold">
-            {t("browseShop")} →
+            {t("findShopTitle")} →
           </Link>
         </div>
         {hydrated ? (
           <div className="space-y-3">
-            {allBarbers().map((b) => (
-              <BarberCard key={b.id} barber={b} />
+            {getBarbersForShop(shops[0].id).map((b) => (
+              <BarberCard key={b.id} barber={getBarber(b.id)!} />
             ))}
           </div>
         ) : (
@@ -57,6 +68,15 @@ export default function HomePage() {
         <p className="text-muted">{t("forBarbersPitch")}</p>
         <Link href="/dashboard" className="btn-secondary w-full">
           ✂️ {t("openDashboard")}
+        </Link>
+      </section>
+
+      {/* For shop owners */}
+      <section className="card space-y-3 p-5">
+        <h2 className="text-lg font-bold text-teal">{t("forOwners")}</h2>
+        <p className="text-muted">{t("forOwnersPitch")}</p>
+        <Link href="/owner" className="btn-secondary w-full">
+          💈 {t("openOwnerView")}
         </Link>
       </section>
     </div>

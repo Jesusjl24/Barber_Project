@@ -16,18 +16,20 @@ import type {
   BarberLiveState,
   BarberProfile,
   BarberProfileEdits,
+  ClientRecord,
   Language,
   PaymentMethod,
   QueueEntry,
   QueueEntryStatus,
-  Review,
+  Shop,
+  ShopEdits,
 } from "@/types";
 import {
   barbers,
   getService,
+  getShop,
   seedAppointments,
   seedQueue,
-  seedReviews,
 } from "@/data/mockData";
 import { STORAGE_KEYS, generateId, loadJSON, saveJSON } from "./storage";
 import { trackEvent } from "./analytics";
@@ -67,13 +69,14 @@ interface AppStore {
 
   queue: QueueEntry[];
   appointments: Appointment[];
-  reviews: Review[];
   myQueueEntryIds: string[];
   myAppointmentIds: string[];
 
   /** Mock profile merged with barber edits + live status/wait. */
   getBarber: (id: string) => BarberProfile | undefined;
   allBarbers: () => BarberProfile[];
+  /** Mock shop merged with any owner edits. */
+  getShopResolved: (id: string) => Shop | undefined;
   /** Waiting + notified entries, oldest first (position order). */
   waitingQueue: (barberId: string) => QueueEntry[];
   queueCount: (barberId: string) => number;
@@ -81,7 +84,8 @@ interface AppStore {
   positionOf: (entryId: string) => number | null;
   /** Estimated wait in minutes for someone joining the line right now. */
   waitForNewJoiner: (barberId: string) => number;
-  reviewsFor: (barberId: string) => Review[];
+  /** The barber's own portable client book, most recent visit first. */
+  clientsFor: (barberId: string) => ClientRecord[];
 
   joinQueue: (input: JoinQueueInput) => QueueEntry;
   leaveQueue: (entryId: string) => void;
@@ -92,17 +96,10 @@ interface AppStore {
   cancelAppointment: (id: string) => void;
   setAppointmentStatus: (id: string, status: AppointmentStatus) => void;
 
-  addReview: (
-    barberId: string,
-    customerName: string,
-    rating: number,
-    text: string,
-    serviceId: string | null
-  ) => void;
-
   setBarberStatus: (barberId: string, status: AvailabilityStatus) => void;
   setBarberWait: (barberId: string, minutes: number) => void;
   saveProfileEdits: (barberId: string, edits: BarberProfileEdits) => void;
+  saveShopEdits: (shopId: string, edits: ShopEdits) => void;
 
   resetDemo: () => void;
 }
@@ -116,11 +113,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>("en");
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [liveState, setLiveState] = useState<Record<string, BarberLiveState>>({});
   const [profileEdits, setProfileEdits] = useState<
     Record<string, BarberProfileEdits>
   >({});
+  const [shopEdits, setShopEdits] = useState<Record<string, ShopEdits>>({});
   const [myQueueEntryIds, setMyQueueEntryIds] = useState<string[]>([]);
   const [myAppointmentIds, setMyAppointmentIds] = useState<string[]>([]);
 
@@ -130,14 +127,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!seeded) {
       saveJSON(STORAGE_KEYS.queue, seedQueue);
       saveJSON(STORAGE_KEYS.appointments, seedAppointments);
-      saveJSON(STORAGE_KEYS.reviews, seedReviews);
       saveJSON(STORAGE_KEYS.seeded, true);
     }
     setQueue(loadJSON<QueueEntry[]>(STORAGE_KEYS.queue, seedQueue));
     setAppointments(
       loadJSON<Appointment[]>(STORAGE_KEYS.appointments, seedAppointments)
     );
-    setReviews(loadJSON<Review[]>(STORAGE_KEYS.reviews, seedReviews));
     setLiveState(
       loadJSON<Record<string, BarberLiveState>>(STORAGE_KEYS.barberLiveState, {})
     );
@@ -147,6 +142,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         {}
       )
     );
+    setShopEdits(loadJSON<Record<string, ShopEdits>>(STORAGE_KEYS.shopEdits, {}));
     setMyQueueEntryIds(loadJSON<string[]>(STORAGE_KEYS.myQueueEntryIds, []));
     setMyAppointmentIds(loadJSON<string[]>(STORAGE_KEYS.myAppointmentIds, []));
     setLangState(loadJSON<Language>(STORAGE_KEYS.language, "en"));
@@ -161,14 +157,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (hydrated) saveJSON(STORAGE_KEYS.appointments, appointments);
   }, [hydrated, appointments]);
   useEffect(() => {
-    if (hydrated) saveJSON(STORAGE_KEYS.reviews, reviews);
-  }, [hydrated, reviews]);
-  useEffect(() => {
     if (hydrated) saveJSON(STORAGE_KEYS.barberLiveState, liveState);
   }, [hydrated, liveState]);
   useEffect(() => {
     if (hydrated) saveJSON(STORAGE_KEYS.barberProfileEdits, profileEdits);
   }, [hydrated, profileEdits]);
+  useEffect(() => {
+    if (hydrated) saveJSON(STORAGE_KEYS.shopEdits, shopEdits);
+  }, [hydrated, shopEdits]);
   useEffect(() => {
     if (hydrated) saveJSON(STORAGE_KEYS.myQueueEntryIds, myQueueEntryIds);
   }, [hydrated, myQueueEntryIds]);
@@ -201,6 +197,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const allBarbers = useCallback(
     () => barbers.map((b) => getBarber(b.id)!).filter(Boolean),
     [getBarber]
+  );
+
+  const getShopResolved = useCallback(
+    (id: string): Shop | undefined => {
+      const base = getShop(id);
+      if (!base) return undefined;
+      return { ...base, ...shopEdits[id] };
+    },
+    [shopEdits]
   );
 
   const waitingQueue = useCallback(
@@ -246,12 +251,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [getBarber, waitingQueue]
   );
 
-  const reviewsFor = useCallback(
-    (barberId: string) =>
-      reviews
-        .filter((r) => r.barberId === barberId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [reviews]
+  const clientsFor = useCallback(
+    (barberId: string): ClientRecord[] => {
+      // Walk-ins added without a phone number can't be deduped/tracked as a
+      // returning client — they're excluded from the book, same as a real
+      // barber wouldn't have a way to recognize a repeat walk-in by name alone.
+      const visits: {
+        phone: string;
+        name: string;
+        serviceId: string;
+        at: string;
+      }[] = [];
+      for (const q of queue) {
+        if (q.barberId !== barberId || !q.phone.trim()) continue;
+        if (q.status === "cancelled" || q.status === "no_show") continue;
+        visits.push({
+          phone: q.phone,
+          name: q.customerName,
+          serviceId: q.serviceId,
+          at: q.createdAt,
+        });
+      }
+      for (const a of appointments) {
+        if (a.barberId !== barberId || !a.phone.trim()) continue;
+        if (a.status === "cancelled" || a.status === "no_show") continue;
+        visits.push({
+          phone: a.phone,
+          name: a.customerName,
+          serviceId: a.serviceId,
+          at: a.startTime,
+        });
+      }
+
+      const byPhone = new Map<string, ClientRecord>();
+      for (const v of visits) {
+        const key = v.phone.replace(/\D/g, "");
+        if (!key) continue;
+        const existing = byPhone.get(key);
+        const svc = getService(v.serviceId);
+        if (!existing || v.at > existing.lastVisitAt) {
+          byPhone.set(key, {
+            phone: v.phone,
+            name: v.name,
+            visitCount: (existing?.visitCount ?? 0) + 1,
+            lastVisitAt: v.at,
+            lastServiceName: svc?.name ?? "",
+          });
+        } else {
+          existing.visitCount += 1;
+        }
+      }
+      return [...byPhone.values()].sort((a, b) =>
+        b.lastVisitAt.localeCompare(a.lastVisitAt)
+      );
+    },
+    [queue, appointments]
   );
 
   const joinQueue = useCallback(
@@ -357,29 +411,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const addReview = useCallback(
-    (
-      barberId: string,
-      customerName: string,
-      rating: number,
-      text: string,
-      serviceId: string | null
-    ) => {
-      const review: Review = {
-        id: generateId("rev"),
-        barberId,
-        customerName,
-        rating,
-        text,
-        serviceId,
-        createdAt: new Date().toISOString(),
-      };
-      setReviews((prev) => [review, ...prev]);
-      trackEvent("review_submitted", { barberId, rating });
-    },
-    []
-  );
-
   const setBarberStatus = useCallback(
     (barberId: string, status: AvailabilityStatus) => {
       setLiveState((prev) => {
@@ -425,6 +456,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const saveShopEdits = useCallback((shopId: string, edits: ShopEdits) => {
+    setShopEdits((prev) => ({
+      ...prev,
+      [shopId]: { ...prev[shopId], ...edits },
+    }));
+  }, []);
+
   const resetDemo = useCallback(() => {
     if (typeof window === "undefined") return;
     for (const key of Object.values(STORAGE_KEYS)) {
@@ -440,16 +478,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setLang,
       queue,
       appointments,
-      reviews,
       myQueueEntryIds,
       myAppointmentIds,
       getBarber,
       allBarbers,
+      getShopResolved,
       waitingQueue,
       queueCount,
       positionOf,
       waitForNewJoiner,
-      reviewsFor,
+      clientsFor,
       joinQueue,
       leaveQueue,
       setQueueStatus,
@@ -457,10 +495,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       bookAppointment,
       cancelAppointment,
       setAppointmentStatus,
-      addReview,
       setBarberStatus,
       setBarberWait,
       saveProfileEdits,
+      saveShopEdits,
       resetDemo,
     }),
     [
@@ -469,16 +507,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setLang,
       queue,
       appointments,
-      reviews,
       myQueueEntryIds,
       myAppointmentIds,
       getBarber,
       allBarbers,
+      getShopResolved,
       waitingQueue,
       queueCount,
       positionOf,
       waitForNewJoiner,
-      reviewsFor,
+      clientsFor,
       joinQueue,
       leaveQueue,
       setQueueStatus,
@@ -486,10 +524,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       bookAppointment,
       cancelAppointment,
       setAppointmentStatus,
-      addReview,
       setBarberStatus,
       setBarberWait,
       saveProfileEdits,
+      saveShopEdits,
       resetDemo,
     ]
   );

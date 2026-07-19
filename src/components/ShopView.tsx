@@ -1,14 +1,31 @@
 "use client";
 
+import Link from "next/link";
 import { useApp, useT } from "@/lib/store";
-import { shop } from "@/data/mockData";
+import { getBarbersForShop } from "@/data/mockData";
 import BarberCard from "./BarberCard";
 
-export default function ShopView() {
+// A shop's public front door: the shop's identity up top, then its barbers —
+// each one a door to their own page, line, and bookings.
+export default function ShopView({ shopId }: { shopId: string }) {
   const t = useT();
-  const { hydrated, allBarbers } = useApp();
+  const { hydrated, getBarber, getShopResolved } = useApp();
 
   if (!hydrated) return <p className="pt-6 text-muted">{t("loading")}</p>;
+
+  const shop = getShopResolved(shopId);
+  if (!shop) {
+    return (
+      <div className="pt-10 text-center">
+        <p className="text-lg text-muted">{t("notFound")}</p>
+        <Link href="/shop" className="btn-secondary mt-4">
+          {t("findShopTitle")}
+        </Link>
+      </div>
+    );
+  }
+
+  const shopBarbers = getBarbersForShop(shopId).map((b) => getBarber(b.id)!);
 
   return (
     <div className="space-y-6 pt-4">
@@ -23,7 +40,8 @@ export default function ShopView() {
             <h1 className="text-2xl font-black text-cream">{shop.name}</h1>
           </div>
           <p className="text-sm text-muted">
-            {shop.address} · {shop.neighborhood}, {shop.city}, {shop.state}
+            {shop.address} · {shop.neighborhood}, {shop.city}, {shop.state}{" "}
+            {shop.zip}
           </p>
           <p className="text-sm text-muted">{shop.phone}</p>
           <p className="text-[15px] text-cream/80">{shop.description}</p>
@@ -39,7 +57,7 @@ export default function ShopView() {
           {t("shopBarbersTitle", { shop: shop.name })}
         </h2>
         <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-          {allBarbers().map((b) => (
+          {shopBarbers.map((b) => (
             <BarberCard key={b.id} barber={b} />
           ))}
         </div>

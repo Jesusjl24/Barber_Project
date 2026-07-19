@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
-import AppHeader from "@/components/AppHeader";
-import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "MiBarbero — Live queue & bookings for community barbers",
@@ -23,20 +21,17 @@ export const viewport: Viewport = {
   themeColor: "#0a0f1e",
 };
 
+// Chrome (header/nav/footer) lives in nested layouts, not here:
+// - (app)/layout.tsx is the MiBarbero app shell (home, dashboard, admin, my visits).
+// - shop/layout.tsx and b/[barberId]/layout.tsx are the "front door" shell, where
+//   the barber's/shop's own identity is the dominant brand, not MiBarbero's.
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className="antialiased">
-        <AppProvider>
-          <div className="mx-auto max-w-lg min-h-dvh flex flex-col md:max-w-2xl">
-            <AppHeader />
-            {/* pb-28 leaves room for the fixed bottom nav */}
-            <main className="flex-1 px-4 pb-28 pt-2">{children}</main>
-            <BottomNav />
-          </div>
-        </AppProvider>
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

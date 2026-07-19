@@ -10,9 +10,9 @@ export const STORAGE_KEYS = {
   language: `${PREFIX}language`,
   queue: `${PREFIX}queue`,
   appointments: `${PREFIX}appointments`,
-  reviews: `${PREFIX}reviews`,
   barberLiveState: `${PREFIX}barberLiveState`,
   barberProfileEdits: `${PREFIX}barberProfileEdits`,
+  shopEdits: `${PREFIX}shopEdits`,
   analytics: `${PREFIX}analytics`,
   /** IDs of queue entries / appointments created on this device (the "customer") */
   myQueueEntryIds: `${PREFIX}myQueueEntryIds`,
@@ -48,7 +48,7 @@ export function generateId(prefix: string): string {
 
 // ---------------------------------------------------------------------------
 // Supabase migration path:
-// 1. Create tables mirroring src/types (queue_entries, appointments, reviews,
+// 1. Create tables mirroring src/types (queue_entries, appointments,
 //    barbers, services, shops, analytics_events).
 // 2. Replace loadJSON/saveJSON call sites in lib/store.tsx with a small async
 //    repository (getQueue(barberId), addQueueEntry(entry), ...) backed by

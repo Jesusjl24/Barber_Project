@@ -7,6 +7,7 @@ import { barbers, getService, getServicesForBarber } from "@/data/mockData";
 import { trackEvent } from "@/lib/analytics";
 import StatusPill from "./StatusPill";
 import Avatar from "./Avatar";
+import ClientBook from "./ClientBook";
 import { PAYMENT_ICON } from "./PaymentChips";
 
 const WAIT_PRESETS = [0, 15, 30, 45, 60, 90];
@@ -451,6 +452,8 @@ export default function BarberDashboard() {
           </div>
         )}
       </section>
+
+      <ClientBook barberId={barberId} />
 
       {/* Edit profile */}
       <section className="card space-y-3 p-4">

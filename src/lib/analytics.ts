@@ -15,9 +15,9 @@ export type EventName =
   | "queue_status_change"
   | "barber_status_change"
   | "barber_wait_change"
-  | "review_submitted"
   | "walk_in_added"
-  | "share_link_copied";
+  | "share_link_copied"
+  | "client_list_exported";
 
 const MAX_EVENTS = 2000;
 

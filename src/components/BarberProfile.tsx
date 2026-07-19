@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { useApp, useT } from "@/lib/store";
-import { getServicesForBarber, shop } from "@/data/mockData";
+import { getServicesForBarber, getShopForBarber } from "@/data/mockData";
 import { trackEvent } from "@/lib/analytics";
 import Avatar from "./Avatar";
 import StatusPill from "./StatusPill";
 import { PaymentBadges } from "./PaymentChips";
-import ReviewList from "./Reviews";
 
 export default function BarberProfile({ barberId }: { barberId: string }) {
   const t = useT();
@@ -17,7 +16,6 @@ export default function BarberProfile({ barberId }: { barberId: string }) {
     getBarber,
     queueCount,
     waitForNewJoiner,
-    reviewsFor,
     myQueueEntryIds,
     queue,
   } = useApp();
@@ -46,9 +44,9 @@ export default function BarberProfile({ barberId }: { barberId: string }) {
   }
 
   const services = getServicesForBarber(barberId);
+  const shop = getShopForBarber(barberId);
   const count = queueCount(barberId);
   const joinWait = waitForNewJoiner(barberId);
-  const reviews = reviewsFor(barberId);
   const working = barber.status !== "off";
 
   const myActiveEntry = queue.find(
@@ -79,15 +77,19 @@ export default function BarberProfile({ barberId }: { barberId: string }) {
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-muted">
-            {shop.name} · {shop.neighborhood}, {shop.city}
-          </p>
+          {shop && (
+            <p className="mt-1 text-sm text-muted">
+              <Link href={`/shop/${shop.id}`} className="hover:text-cream">
+                {shop.name}
+              </Link>{" "}
+              · {shop.neighborhood}, {shop.city}
+            </p>
+          )}
           <p className="mt-1 text-sm text-muted">
             {t("languagesSpoken")}:{" "}
             {barber.languages
               .map((l) => (l === "en" ? t("langEnglish") : t("langSpanish")))
-              .join(" · ")}{" "}
-            · <span className="text-gold font-semibold">★ {barber.ratingAverage.toFixed(1)}</span>
+              .join(" · ")}
           </p>
         </div>
       </section>
@@ -193,20 +195,9 @@ export default function BarberProfile({ barberId }: { barberId: string }) {
         >
           📸 Instagram
         </a>
-        <Link href={`/b/${barberId}/reviews`} className="btn-ghost flex-1 border border-line">
-          ⭐ {t("leaveReview")}
-        </Link>
-      </section>
-
-      {/* Reviews preview */}
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-bold text-cream">{t("reviews")}</h2>
-          <Link href={`/b/${barberId}/reviews`} className="text-sm font-semibold text-gold">
-            {t("leaveReview")} →
-          </Link>
-        </div>
-        <ReviewList reviews={reviews.slice(0, 2)} />
+        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-ghost flex-1 border border-line">
+          💬 WhatsApp
+        </a>
       </section>
 
       <p className="pb-2 text-center text-xs text-muted">

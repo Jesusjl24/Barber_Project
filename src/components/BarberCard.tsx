@@ -35,9 +35,6 @@ export default function BarberCard({ barber }: { barber: BarberProfile }) {
               .join(" · ")}
           </p>
         </div>
-        <span aria-hidden className="text-gold text-sm font-bold">
-          ★ {barber.ratingAverage.toFixed(1)}
-        </span>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
